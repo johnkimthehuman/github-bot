@@ -19,24 +19,16 @@ function getCRs(req, res) {
     return res.json({ error: 'Incorrect signature' });
   }
 
-  let prTitle = req.body.issue.title;
-  let prBody = req.body.issue.body;
-  let prURL = req.body.issue.html_url;
-  let prComment = req.body.comment.body;
   let prCommenter = req.body.comment.user.login;
-
   if (prCommenter === 'hudson-admin') {
     return;
   }
 
-  let ticketLink = '';
-  let ticketInTitle = prTitle.match(/^\w+-\d+/i);
-  let ticketInBody = prBody.match(/(ticket:\s*https:.*\d+)|(jira:\s*https:.*\d+)/gi);
-  if (ticketInTitle) {
-    ticketLink = 'https://issues.appian.com/browse/' + ticketInTitle[0];
-  } else if (ticketInBody) {
-    ticketLink = ticketInBody[0].match(/https:.*\d+/gi)[0];
-  }
+  let prTitle = req.body.issue.title;
+  let prBody = req.body.issue.body;
+  let ticketLink = getTicketLink(prTitle, prBody);
+  let prURL = req.body.issue.html_url;
+  let prComment = req.body.comment.body;
 
   if (req.body.action === 'created') {
     let squads = prComment.match(/@(\w|-|_|\/)+/g);
@@ -44,11 +36,21 @@ function getCRs(req, res) {
       if (squad in squadToChannel) {
         let mattermostChannel = squadToChannel[squad];
         let mattermostComment = generateMattermostComment(prTitle, prURL, prCommenter, prComment, ticketLink);
-
         postToMattermost(mattermostChannel, mattermostComment);
       }
     });
   }
+}
+
+function getTicketLink(prTitle, prBody) {
+  let ticketInTitle = prTitle.match(/^\w+-\d+/i);
+  let ticketInBody = prBody.match(/(ticket:\s*https:.*\d+)|(jira:\s*https:.*\d+)/gi);
+  if (ticketInTitle) {
+    return 'https://issues.appian.com/browse/' + ticketInTitle[0];
+  } else if (ticketInBody) {
+    return ticketInBody[0].match(/https:.*\d+/gi)[0];
+  }
+  return '';
 }
 
 function generateMattermostComment(prTitle, prURL, prCommenter, prComment, ticketLink) {

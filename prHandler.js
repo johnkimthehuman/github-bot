@@ -1,5 +1,4 @@
 require('dotenv').config();
-const octokit = require('@octokit/rest')({ debug: true });
 
 const GITHUB_ICON = 'https://www.iconsdb.com/icons/preview/caribbean-blue/github-6-xxl.png';
 
@@ -25,37 +24,9 @@ function getPRs(req, res) {
     return mattermostResponse(res, text);
   }
 
-  let repo = parameters[1];
-  let repoOwner = 'appian';
-
-  return octokit.issues.getForRepo({ owner: repoOwner, repo: repo, creator: githubUsername }).then(result => {
-    let text = `### PRs created by ${githubUsername} in ${repo} ([Link on GitHub](${link})):\n`;
-
-    result.data.forEach(prResponse => {
-      let prTitle = prResponse.title;
-      let prURL = prResponse.html_url;
-      text += `${prTitle}: ${prURL}\n`;
-    });
-
-    return mattermostResponse(res, text);
-  }).catch(error => {
-    let inputCommand = `/prs ${githubUsername} ${repo}\n`;
-    let errorMessage = ''
-
-    if (error.code === '404') {
-      errorMessage = '404 error. Did you provide the correct GitHub username and repo?';
-    } else {
-      errorMessage = 'Unknown error.';
-    }
-
-    return mattermostResponse(res, inputCommand + errorMessage);
-  });
+  let text = `The 2 argument command is deprecated, sorry :(`;
+  return mattermostResponse(res, text);
 }
-
-octokit.authenticate({
-  type: 'token',
-  token: process.env.GITHUB_TOKEN
-});
 
 function mattermostResponse(res, text) {
   return res.json({
